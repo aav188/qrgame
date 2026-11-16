@@ -14,7 +14,21 @@
     return;
   }
   try {
-    const bytes = Uint8Array.from(atob(h.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+    // Formato nuevo: "base43" (solo mayúsculas, números y $*+-./:), que el QR
+    // guarda en su modo alfanumérico, más compacto. Formato antiguo: base64.
+    const A = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ$*+-./:';
+    let bytes;
+    if (/^[0-9A-Z$*+\-.\/:]+$/.test(h)) {
+      const out = [];
+      for (let i = 0; i < h.length; i += 3) {
+        const c = [...h.slice(i, i + 3)].map(x => A.indexOf(x));
+        if (c.length === 3) { const n = c[0] + c[1] * 43 + c[2] * 1849; out.push(n >> 8, n & 255); }
+        else out.push(c[0] + c[1] * 43);
+      }
+      bytes = new Uint8Array(out);
+    } else {
+      bytes = Uint8Array.from(atob(h.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+    }
     const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
     const juego = await new Response(stream).text();
     document.open();
