@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width">
+<title>Juego QR</title>
+<body style="font:18px sans-serif;padding:16px">
+<script>
+// Lanzador: el juego NO está en esta página. Viene comprimido dentro del QR,
+// después del "#" del enlace. Esta página solo lo descomprime y lo ejecuta.
+// (Lo que va después del "#" nunca se envía al servidor.)
+(async () => {
+  const h = location.hash.slice(1);
+  if (!h) {
+    document.body.textContent = 'Escanea un código QR de juego para jugar.';
+    return;
+  }
+  try {
+    const bytes = Uint8Array.from(atob(h.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    const juego = await new Response(stream).text();
+    document.open();
+    document.write(juego);
+    document.close();
+  } catch (e) {
+    document.body.textContent = 'Este QR no contiene un juego válido.';
+  }
+})();
+addEventListener('hashchange', () => location.reload());
+</script>
